@@ -8,6 +8,7 @@ InterruptIn up(D10);
 InterruptIn down(D9);
 InterruptIn sel(D11);
 DigitalOut led1(LED1);
+AnalogOut aout(PA_4);
 EventQueue queue;
 Timer debounce;
 Thread t;
@@ -15,19 +16,31 @@ Thread t;
 char rate = 1;
 
 void Generate() {
-    led1 = !led1;
-}
-
-void up_bt() {
-    if (duration_cast<milliseconds>(debounce.elapsed_time()).count() > 500) {
-        if (rate < 4) rate++;
-        debounce.reset();
+    while (1) {
+        for (float j = 0.0f; j < 1.0f; j += 0.1f) {
+            ThisThread::sleep_for(8ms / rate);
+	        aout = j;
+        }
+        ThisThread::sleep_for(80ms - 80ms / rate);
+        ThisThread::sleep_for(80ms);
+        ThisThread::sleep_for(80ms - 80ms / rate);
+        for (float j = 0.9f; j >= 0.0f; j -= 0.1f) {
+            ThisThread::sleep_for(8ms / rate);
+	        aout = j;
+        }
     }
 }
 
 void down_bt() {
     if (duration_cast<milliseconds>(debounce.elapsed_time()).count() > 500) {
-        if (rate > 1) rate--;
+        if (rate < 8) rate *= 2;
+        debounce.reset();
+    }
+}
+
+void up_bt() {
+    if (duration_cast<milliseconds>(debounce.elapsed_time()).count() > 500) {
+        if (rate > 1) rate /= 2;
         debounce.reset(); 
     }
 }
@@ -50,7 +63,6 @@ void uLCD_initial(void) {
 int main()
 {
     char rate_last = 0;
-    led1 = 0;
     t.start(callback(&queue, &EventQueue::dispatch_forever));
     uLCD_initial();
     debounce.start();
@@ -60,9 +72,9 @@ int main()
     while (1) {
         if (rate != rate_last) {
             uLCD.locate(1,2);
-            if (rate == 4) uLCD.printf("rate = 1  ");
-            else if (rate == 3) uLCD.printf("rate = 1/2");
-            else if (rate == 2) uLCD.printf("rate = 1/4");
+            if (rate == 1) uLCD.printf("rate = 1  ");
+            else if (rate == 2) uLCD.printf("rate = 1/2");
+            else if (rate == 4) uLCD.printf("rate = 1/4");
             else uLCD.printf("rate = 1/8");
         }
         rate_last = rate;
